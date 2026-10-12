@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using Nethermind.Blockchain.Tracing.GethStyle.Custom.Native;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
@@ -10,7 +11,6 @@ using Nethermind.Core.Specs;
 using Nethermind.Evm;
 using Nethermind.Evm.TransactionProcessing;
 using Nethermind.Int256;
-using Nethermind.Serialization.Json;
 using Nethermind.Evm.State;
 using Nethermind.Evm.Tracing;
 
@@ -59,7 +59,7 @@ public class NativePrestateTracer : GethLikeNativeTxTracer, IInstructionTracingF
         _isEip8298Enabled = spec?.IsEip8298Enabled == true;
         InstructionMask = _isEip8298Enabled ? CaptureMask | (UInt256.One << (int)Instruction.SETCODEFROM) : CaptureMask;
 
-        NativePrestateTracerConfig config = TypeInfoJsonSerializer.Deserialize<NativePrestateTracerConfig>(options.TracerConfig, EthereumJsonSerializer.JsonOptions) ?? new NativePrestateTracerConfig();
+        NativePrestateTracerConfig config = GethLikeNativeTracerFactory.ParseConfig<NativePrestateTracerConfig>(options.TracerConfig) ?? new NativePrestateTracerConfig();
         _diffMode = config.DiffMode;
         if (_diffMode)
         {
