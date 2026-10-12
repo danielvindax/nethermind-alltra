@@ -34,6 +34,7 @@ public class NativePrestateTracer : GethLikeNativeTxTracer, IInstructionTracingF
     private readonly Dictionary<AddressAsKey, NativePrestateTracerAccount> _poststate;
     private readonly HashSet<AddressAsKey> _createdAccounts;
     private readonly HashSet<AddressAsKey> _deletedAccounts;
+    private List<AddressAsKey>? _nonexistentAccounts;
     private readonly bool _diffMode;
     private readonly bool _isEip8298Enabled;
     private readonly bool _disableCode;
@@ -286,6 +287,8 @@ public class NativePrestateTracer : GethLikeNativeTxTracer, IInstructionTracingF
                 {
                     Balance = UInt256.Zero
                 });
+                if (_diffMode && !_worldState.AccountExists(addr))
+                    (_nonexistentAccounts ??= []).Add(addr);
             }
         }
     }
@@ -380,6 +383,16 @@ public class NativePrestateTracer : GethLikeNativeTxTracer, IInstructionTracingF
             // a created account counts as new when it was empty before, judged by balance, nonce and code hash.
             if (!modified || (_createdAccounts.Contains(addr) && IsEmpty(prestateAccount)))
                 _prestate.Remove(addr);
+        }
+
+        if (_nonexistentAccounts is not null)
+        {
+            foreach (AddressAsKey addr in _nonexistentAccounts)
+            {
+                // EIP-8250's nonce manager can have storage without an account record.
+                if (_prestate.TryGetValue(addr, out NativePrestateTracerAccount? account) && account.Storage is not { Count: > 0 })
+                    _prestate.Remove(addr);
+            }
         }
     }
 }
