@@ -158,6 +158,9 @@ public class DebugRpcModule(
             }
         }
 
+        if (call is LegacyTransactionForRpc { ChainId: { } requestedChainId } && requestedChainId != specProvider.ChainId)
+            return ResultWrapper<GethLikeTxTrace>.Fail($"chainId does not match node's (have={requestedChainId}, want={specProvider.ChainId})", ErrorCodes.InvalidInput);
+
         Result<Transaction> txResult = ToTraceCallTransaction(call, specProvider.GetSpec(header!));
         if (!txResult.Success(out Transaction? tx, out string? error))
         {
