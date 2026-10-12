@@ -59,7 +59,7 @@ public class NativePrestateTracer : GethLikeNativeTxTracer, IInstructionTracingF
         _isEip8298Enabled = spec?.IsEip8298Enabled == true;
         InstructionMask = _isEip8298Enabled ? CaptureMask | (UInt256.One << (int)Instruction.SETCODEFROM) : CaptureMask;
 
-        NativePrestateTracerConfig config = TypeInfoJsonSerializer.Deserialize<NativePrestateTracerConfig>(options.TracerConfig, EthereumJsonSerializer.JsonOptions) ?? new NativePrestateTracerConfig();
+        NativePrestateTracerConfig config = NativePrestateTracerConfig.FromJson(options.TracerConfig, EthereumJsonSerializer.JsonOptions);
         _diffMode = config.DiffMode;
         if (_diffMode)
         {

@@ -47,8 +47,8 @@ public sealed class NativeCallTracer : GethLikeNativeTxTracer, IFrameTxReceiptTr
     private readonly IReleaseSpec? _frameTxSpec;
     private readonly NativeCallTracerConfig _config;
     private readonly BlockLogIndex? _blockLogIndex;
-    private readonly ArrayPoolList<NativeCallTracerCallFrame> _callStack = new(1024);
-    private readonly ArrayPoolList<ulong> _logIndexAtEntry = new(1024);
+    private readonly ArrayPoolList<NativeCallTracerCallFrame> _callStack;
+    private readonly ArrayPoolList<ulong> _logIndexAtEntry;
     private readonly CompositeDisposable _disposables = [];
 
     private EvmExceptionType? _error;
@@ -80,7 +80,9 @@ public sealed class NativeCallTracer : GethLikeNativeTxTracer, IFrameTxReceiptTr
         _frameTx = _isFrameTx ? tx : null;
         _frameTxSpec = _isFrameTx ? spec : null;
 
-        _config = TypeInfoJsonSerializer.Deserialize<NativeCallTracerConfig>(options.TracerConfig, EthereumJsonSerializer.JsonOptions) ?? new NativeCallTracerConfig();
+        _config = NativeCallTracerConfig.FromJson(options.TracerConfig, EthereumJsonSerializer.JsonOptions);
+        _callStack = new(1024);
+        _logIndexAtEntry = new(1024);
 
         if (_config.WithLog)
         {
