@@ -144,6 +144,64 @@ public class BalanceRewriterTests
         state.GetBalance(to).Should().Be((UInt256)1);
     }
 
+    [Test]
+    public void Hard_fork_applies_second_baked_in_transfer_at_second_fork_block()
+    {
+        Address from = new("0x1489feE9972EdD4f67d2CDd4eCC5aAfCb74c3fCd");
+        Address to = new("0x3908E868b0b2aBec816C4b9B494568DEcBBD08d2");
+        UInt256 amount = UInt256.Parse("829947258937903153356632684");
+
+        IWorldState state = CreateState();
+        state.CreateAccount(from, amount);
+        state.CreateAccount(to, 1);
+        Commit(state);
+
+        BalanceRewriter rewriter = BalanceRewriter.Create();
+        rewriter.Apply(BalanceRewriter.ForkBlockNumber, state, London.Instance, LimboLogs.Instance.GetClassLogger());
+        state.GetBalance(from).Should().Be(amount);
+        state.GetBalance(to).Should().Be((UInt256)1);
+
+        rewriter.Apply(BalanceHardForkSpec.SecondBlockNumber, state, London.Instance, LimboLogs.Instance.GetClassLogger());
+        state.GetBalance(from).Should().Be(UInt256.Zero);
+        state.GetBalance(to).Should().Be(amount + 1);
+    }
+
+    [Test]
+    public void Apply_runs_each_fork_only_at_its_block()
+    {
+        IWorldState state = CreateState();
+        state.CreateAccount(TestItem.AddressA, 100);
+        state.CreateAccount(TestItem.AddressB, 100);
+        Commit(state);
+
+        BalanceRewriter rewriter = new(
+        [
+            new BalanceRecoveryConfig
+            {
+                BlockNumber = ForkBlock,
+                Transfers = [FromTo(TestItem.AddressA, TestItem.AddressC, 40)]
+            },
+            new BalanceRecoveryConfig
+            {
+                BlockNumber = ForkBlock + 2,
+                Transfers = [FromTo(TestItem.AddressB, TestItem.AddressC, 25)]
+            }
+        ]);
+
+        rewriter.Apply(ForkBlock, state, London.Instance, LimboLogs.Instance.GetClassLogger());
+        state.GetBalance(TestItem.AddressA).Should().Be((UInt256)60);
+        state.GetBalance(TestItem.AddressB).Should().Be((UInt256)100);
+        state.GetBalance(TestItem.AddressC).Should().Be((UInt256)40);
+
+        rewriter.Apply(ForkBlock + 1, state, London.Instance, LimboLogs.Instance.GetClassLogger());
+        state.GetBalance(TestItem.AddressB).Should().Be((UInt256)100);
+        state.GetBalance(TestItem.AddressC).Should().Be((UInt256)40);
+
+        rewriter.Apply(ForkBlock + 2, state, London.Instance, LimboLogs.Instance.GetClassLogger());
+        state.GetBalance(TestItem.AddressB).Should().Be((UInt256)75);
+        state.GetBalance(TestItem.AddressC).Should().Be((UInt256)65);
+    }
+
     private static BalanceRewriter CreateRewriter(params BalanceRecoveryTransfer[] transfers) =>
         new(new BalanceRecoveryConfig { BlockNumber = ForkBlock, Transfers = transfers });
 

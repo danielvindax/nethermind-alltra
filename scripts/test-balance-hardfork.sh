@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# JSON-era miner (nethermind:1.29.1-old) vs hardcoded test binary (nethermind:1.29.1-test).
+# JSON-era miner (nethermind:1.29.2-old) vs hardcoded test binary (nethermind:1.29.2-test).
 # Fork block N=20. After miner passes N, check:
 #   1) sync from genesis
 #   2) FastSync from N-10
@@ -74,11 +74,11 @@ cleanup() {
 cleanup
 docker network create "$NET"
 
-echo "== miner 1.29.1-old + JSON =="
+echo "== miner 1.29.2-old + JSON =="
 docker run -d --name "$MINER" --network "$NET" \
   -p 8545:8545 \
   -v "$CFG:/config:ro" \
-  nethermind:1.29.1-old \
+  nethermind:1.29.2-old \
   --config /config/all-old.cfg
 
 wait_block http://127.0.0.1:8545 $((FORK + 5))
@@ -107,11 +107,11 @@ fi
 ENODE="$(RPC http://127.0.0.1:8545 admin_nodeInfo | python3 -c 'import json,sys,re; e=json.load(sys.stdin)["result"]["enode"]; print(re.sub(r"@[^:]+", "@'"$MINER"'", e, count=1))')"
 echo "enode=$ENODE"
 
-echo "== 1.29.1-test sync from genesis =="
+echo "== 1.29.2-test sync from genesis =="
 docker run -d --name "$SYNC_GENESIS" --network "$NET" \
   -p 8555:8545 \
   -v "$CFG:/config:ro" \
-  nethermind:1.29.1-test \
+  nethermind:1.29.2-test \
   --config /config/all-test.cfg \
   --Init.BaseDbPath nethermind_db/hf-genesis \
   --Network.P2PPort 30301 \
@@ -129,11 +129,11 @@ if [ "$GEN_FORK" != "$ROOT_FORK" ] || [ "$GEN_HEAD" != "$ROOT_HEAD" ]; then
 fi
 echo "OK genesis sync"
 
-echo "== 1.29.1-test FastSync from N-10 ($PIVOT) =="
+echo "== 1.29.2-test FastSync from N-10 ($PIVOT) =="
 docker run -d --name "$SYNC_PIVOT" --network "$NET" \
   -p 8565:8545 \
   -v "$CFG:/config:ro" \
-  nethermind:1.29.1-test \
+  nethermind:1.29.2-test \
   --config /config/all-test.cfg \
   --Init.BaseDbPath nethermind_db/hf-pivot \
   --Network.P2PPort 30302 \
@@ -157,6 +157,6 @@ fi
 echo "OK n-10 FastSync"
 
 echo
-echo "all checks passed: JSON miner and hardcoded 1.29.1-test share state roots"
-echo "live image nethermind:1.29.1 still uses block 36333941 (do not use it on this test net)"
+echo "all checks passed: JSON miner and hardcoded 1.29.2-test share state roots"
+echo "live image nethermind:1.29.2 still uses blocks 36333941 and 38084000 (do not use it on this test net)"
 cleanup
